@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Popup,
+  useMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import "./TrekMap.css";
@@ -15,42 +22,42 @@ const endIcon = new L.Icon({
   iconSize: [32, 32],
 });
 
+// ✅ Auto zoom map to bbox
+function FitBounds({ bbox }) {
+  const map = useMap();
+  useEffect(() => {
+    if (bbox) {
+      const bounds = [
+        [bbox.south, bbox.west],
+        [bbox.north, bbox.east],
+      ];
+      map.fitBounds(bounds);
+    }
+  }, [bbox, map]);
+  return null;
+}
+
 export default function TrekMap() {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [nodes, setNodes] = useState([]);
-  const [center, setCenter] = useState([20, 78]); // Default: India
+  const [paths, setPaths] = useState([]);
+  const [center, setCenter] = useState([20, 78]);
   const [loading, setLoading] = useState(false);
   const [trekInfo, setTrekInfo] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  // Fetch suggestions
-  const fetchSuggestions = async (text) => {
-    if (!text) {
-      setSuggestions([]);
-      return;
-    }
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/maps/search?q=${encodeURIComponent(text)}`
-      );
-      setSuggestions(res.data.result || []);
-    } catch (err) {
-      console.error("Suggestion fetch error:", err);
-    }
-  };
-
-  // When user clicks a suggestion → fetch trek data
   const handleSelectPlace = async (place) => {
-    setQuery(place);
-    setSuggestions([]);
+    if (!place) return;
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:3000/maps/treks/${encodeURIComponent(place)}`);
-      setNodes(res.data.nodes || []);
+      const res = await axios.get(
+        `http://localhost:3000/maps/treks/${encodeURIComponent(place)}`
+      );
+
+      setPaths(res.data.paths || []);
       setTrekInfo(res.data);
 
-      if (res.data.nodes && res.data.nodes.length > 0) {
-        setCenter([res.data.nodes[0].latitude, res.data.nodes[0].longitude]);
+      if (res.data.center) {
+        setCenter([res.data.center.lat, res.data.center.lon]);
       }
     } catch (err) {
       console.error("Trek fetch error:", err);
@@ -59,63 +66,99 @@ export default function TrekMap() {
   };
 
   return (
-    <div className="map-wrapper">
+    <div className="trek-container">
+      {/* 🔍 Search Box */}
       <div className="search-box">
         <input
           type="text"
-          placeholder="Search for a place..."
+          placeholder="Enter trek name..."
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            fetchSuggestions(e.target.value);
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSelectPlace(query);
           }}
         />
-        {suggestions.length > 0 && (
-          <ul className="suggestions">
-            {suggestions.map((item, idx) => (
-              <li key={idx} onClick={() => handleSelectPlace(item.name)}>
-                {item.name}
-              </li>
-            ))}
-          </ul>
-        )}
+        <button onClick={() => handleSelectPlace(query)}>Search</button>
       </div>
 
       {loading && <p className="loading">Loading trek data...</p>}
 
-      <MapContainer center={center} zoom={6} style={{ height: "500px", width: "100%" }}>
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        {nodes.length > 0 && (
-          <>
-            {/* Polyline for trek path */}
-            <Polyline
-              positions={nodes.map((n) => [n.latitude, n.longitude])}
-              color="green"
-            />
-            {/* Start point */}
-            <Marker position={[nodes[0].latitude, nodes[0].longitude]} icon={startIcon}>
-              <Popup>Start Point</Popup>
-            </Marker>
-            {/* End point */}
-            <Marker
-              position={[nodes[nodes.length - 1].latitude, nodes[nodes.length - 1].longitude]}
-              icon={endIcon}
-            >
-              <Popup>End Point</Popup>
-            </Marker>
-          </>
-        )}
-      </MapContainer>
+      {/* 🗺️ Map Preview Card */}
+      <div className="map-card" onClick={() => setShowModal(true)}>
+        <MapContainer
+          center={center}
+          zoom={6}
+          style={{ height: "200px", width: "100%", borderRadius: "12px" }}
+          dragging={false}
+          zoomControl={false}
+          scrollWheelZoom={false}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          {paths.length > 0 && (
+            <>
+              {paths.map((path, idx) => (
+                <Polyline key={idx} positions={path} color="green" weight={3} />
+              ))}
+              {trekInfo?.bbox && <FitBounds bbox={trekInfo.bbox} />}
+            </>
+          )}
+        </MapContainer>
+        <p className="map-card-label">
+          {trekInfo ? trekInfo.place : "Trek Preview"}
+        </p>
+      </div>
 
+      {/* Trek Info */}
       {trekInfo && (
         <div className="trek-info">
           <h3>{trekInfo.place}</h3>
-          <p>Total Distance: {trekInfo.totalDistance_m} meters</p>
-          <p>Elevation Gain: {trekInfo.elevationGain_m} m</p>
-          <p>Elevation Loss: {trekInfo.elevationLoss_m} m</p>
+          <p>Total Segments: {paths.length}</p>
+          <p>Total Points: {paths.reduce((sum, p) => sum + p.length, 0)}</p>
+        </div>
+      )}
+
+      {/* 🔥 Fullscreen Modal */}
+      {showModal && (
+        <div className="map-modal">
+          <div className="modal-content animate-popup">
+            <button className="close-btn" onClick={() => setShowModal(false)}>
+              ✖
+            </button>
+            <MapContainer
+              center={center}
+              zoom={6}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+
+              {paths.length > 0 && (
+                <>
+                  {paths.map((path, idx) => (
+                    <Polyline key={idx} positions={path} color="green" />
+                  ))}
+
+                  <Marker position={paths[0][0]} icon={startIcon}>
+                    <Popup>Start Point</Popup>
+                  </Marker>
+
+                  <Marker
+                    position={paths[paths.length - 1].slice(-1)[0]}
+                    icon={endIcon}
+                  >
+                    <Popup>End Point</Popup>
+                  </Marker>
+
+                  {trekInfo?.bbox && <FitBounds bbox={trekInfo.bbox} />}
+                </>
+              )}
+            </MapContainer>
+          </div>
         </div>
       )}
     </div>

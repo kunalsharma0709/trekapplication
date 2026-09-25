@@ -1,56 +1,132 @@
-.map-wrapper {
-  width: 100%;
-  padding: 10px;
+/* 🌌 Background */
+.trek-container {
+  font-family: "Poppins", sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(to top, #0b132b, #1c2541, #3a506b);
+  color: #fff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
+/* 🔍 Search Box */
 .search-box {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  display: flex;
+  gap: 10px;
+  margin: 20px 0 30px;
 }
 
 .search-box input {
+  padding: 12px 18px;
+  border-radius: 30px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
   width: 250px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
 }
 
-.suggestions {
-  margin-top: 5px;
-  list-style: none;
-  padding: 0;
-  max-height: 150px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
+.search-box input::placeholder {
+  color: #bbb;
 }
 
-.suggestions li {
-  padding: 8px;
+.search-box button {
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: none;
   cursor: pointer;
+  background: linear-gradient(135deg, #ff6b35, #f77f00);
+  color: white;
+  font-weight: bold;
+  transition: 0.3s;
 }
 
-.suggestions li:hover {
-  background: #f0f0f0;
+.search-box button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255,107,53,0.5);
 }
 
-.loading {
-  margin: 10px;
-  font-size: 14px;
-  color: gray;
+/* 🗺️ Map Card */
+.map-card {
+  width: 90%;
+  max-width: 600px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  cursor: pointer;
+  transition: 0.3s;
+  background: rgba(255,255,255,0.05);
 }
 
+.map-card:hover {
+  transform: translateY(-5px) scale(1.02);
+}
+
+.map-card-label {
+  padding: 12px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: rgba(0,0,0,0.6);
+}
+
+/* ℹ️ Trek Info */
 .trek-info {
-  margin-top: 10px;
-  padding: 10px;
-  background: #f8f8f8;
-  border-radius: 8px;
+  margin-top: 25px;
+  padding: 20px;
+  width: 90%;
+  max-width: 600px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+}
+
+/* 🌍 Fullscreen Modal */
+.map-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,20,0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.4s ease;
+}
+
+.modal-content {
+  position: relative;
+  width: 95%;
+  height: 90%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+}
+
+/* ❌ Close Button */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1.2rem;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.close-btn:hover {
+  background: #ff4757;
+}
+
+/* ⚡ Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
